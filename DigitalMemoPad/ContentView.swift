@@ -190,12 +190,20 @@ struct MemoDetailView: View {
     }
     
     private func saveMemo() {
-        memo.content = editedContent
-        memo.timestamp = Date()
+        let newMemo = Item(context: viewContext)
+        newMemo.timestamp = Date()
+        newMemo.content = memoContent
         
         do {
             try viewContext.save()
-            isEditing = false
+            
+            // Debug: Check what we just saved and where
+            let request: NSFetchRequest<Item> = Item.fetchRequest()
+            let allMemos = try viewContext.fetch(request)
+            print("🔵 Main App: Saved memo. Total count now: \(allMemos.count)")
+            print("🔵 Main App: Using container: \(viewContext.persistentStoreCoordinator?.persistentStores.first?.url?.absoluteString ?? "unknown")")
+            
+            dismiss()
         } catch {
             print("Error saving: \(error)")
         }
