@@ -5,6 +5,7 @@
 
 import SwiftUI
 import CoreData
+import WidgetKit
 
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -196,15 +197,64 @@ struct MemoDetailView: View {
             do {
                 try viewContext.save()
                 
-                // Debug: Check what we just saved and where
+                // Enhanced Debug: Check what we just saved and where
                 let request: NSFetchRequest<Item> = Item.fetchRequest()
                 let allMemos = try viewContext.fetch(request)
-                print("🔵 Main App: Updated memo. Total count: \(allMemos.count)")
-                print("🔵 Main App: Using container: \(viewContext.persistentStoreCoordinator?.persistentStores.first?.url?.absoluteString ?? "unknown")")
+                
+                print("\n🔵 ========== MAIN APP SAVE DEBUG ==========")
+                print("📝 Action: Updated existing memo")
+                print("📊 Total memos in database: \(allMemos.count)")
+                print("💾 Storage location: \(viewContext.persistentStoreCoordinator?.persistentStores.first?.url?.absoluteString ?? "unknown")")
+                
+                // Check if file exists and its size
+                if let storeURL = viewContext.persistentStoreCoordinator?.persistentStores.first?.url {
+                    let fileManager = FileManager.default
+                    if fileManager.fileExists(atPath: storeURL.path) {
+                        let attributes = try? fileManager.attributesOfItem(atPath: storeURL.path)
+                        let fileSize = attributes?[.size] as? Int64 ?? 0
+                        print("📁 SQLite file exists: YES")
+                        print("📏 File size: \(fileSize) bytes")
+                    }
+                }
+                
+                // Show app group container path
+                if let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.shuhei.digitalmemopad") {
+                    print("📂 App Group container: \(containerURL.path)")
+                }
+                
+                // List first 3 memos for verification
+                print("📋 First 3 memos:")
+                for (index, memo) in allMemos.prefix(3).enumerated() {
+                    let preview = (memo.content ?? "").components(separatedBy: .newlines).first ?? "Empty"
+                    print("   \(index + 1). \(preview.prefix(50))...")
+                }
+                
+                print("⏰ Save timestamp: \(Date())")
+                print("🔵 ==========================================\n")
+                
+                // Trigger widget refresh
+                WidgetCenter.shared.reloadAllTimelines()
+                print("🔄 Widget refresh triggered")
                 
                 isEditing = false
             } catch {
-                print("Error saving: \(error)")
+                print("❌ Error saving: \(error)")
+            }
+        }
+        
+        private func autoSave() {
+            // Silent save without exiting edit mode
+            memo.content = editedContent
+            
+            do {
+                try viewContext.save()
+                print("📝 Auto-saved memo in background")
+                
+                // Trigger widget refresh
+                WidgetCenter.shared.reloadAllTimelines()
+                print("🔄 Widget refresh triggered after auto-save")
+            } catch {
+                print("Error auto-saving: \(error)")
             }
         }
 }
