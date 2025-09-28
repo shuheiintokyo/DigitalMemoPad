@@ -190,24 +190,23 @@ struct MemoDetailView: View {
     }
     
     private func saveMemo() {
-        let newMemo = Item(context: viewContext)
-        newMemo.timestamp = Date()
-        newMemo.content = memoContent
-        
-        do {
-            try viewContext.save()
+            // Update the existing memo instead of creating a new one
+            memo.content = editedContent
             
-            // Debug: Check what we just saved and where
-            let request: NSFetchRequest<Item> = Item.fetchRequest()
-            let allMemos = try viewContext.fetch(request)
-            print("🔵 Main App: Saved memo. Total count now: \(allMemos.count)")
-            print("🔵 Main App: Using container: \(viewContext.persistentStoreCoordinator?.persistentStores.first?.url?.absoluteString ?? "unknown")")
-            
-            dismiss()
-        } catch {
-            print("Error saving: \(error)")
+            do {
+                try viewContext.save()
+                
+                // Debug: Check what we just saved and where
+                let request: NSFetchRequest<Item> = Item.fetchRequest()
+                let allMemos = try viewContext.fetch(request)
+                print("🔵 Main App: Updated memo. Total count: \(allMemos.count)")
+                print("🔵 Main App: Using container: \(viewContext.persistentStoreCoordinator?.persistentStores.first?.url?.absoluteString ?? "unknown")")
+                
+                isEditing = false
+            } catch {
+                print("Error saving: \(error)")
+            }
         }
-    }
 }
 
 // MARK: - Add Memo View
