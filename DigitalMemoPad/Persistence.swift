@@ -36,16 +36,21 @@ struct PersistenceController {
         
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+            print("Using in-memory store")
         } else {
             // Configure for App Group sharing
             let storeURL = URL.storeURL(for: "group.com.shuhei.digitalmemopad", databaseName: "DigitalMemoPad")
             let storeDescription = NSPersistentStoreDescription(url: storeURL)
             container.persistentStoreDescriptions = [storeDescription]
+            print("Main app using shared store at: \(storeURL)")
         }
         
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
+                print("Main app Core Data error: \(error)")
                 fatalError("Unresolved error \(error), \(error.userInfo)")
+            } else {
+                print("Main app Core Data loaded successfully from: \(storeDescription.url?.absoluteString ?? "unknown")")
             }
         })
         container.viewContext.automaticallyMergesChangesFromParent = true
