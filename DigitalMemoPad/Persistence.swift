@@ -2,8 +2,6 @@
 //  Persistence.swift
 //  DigitalMemoPad
 //
-//  Created by Shuhei Kinugasa on 2025/09/28.
-//
 
 import CoreData
 
@@ -14,15 +12,17 @@ struct PersistenceController {
     static let preview: PersistenceController = {
         let result = PersistenceController(inMemory: true)
         let viewContext = result.container.viewContext
-        for _ in 0..<3 {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
+        
+        // Add sample data for previews
+        for i in 0..<3 {
+            let newMemo = Item(context: viewContext)
+            newMemo.timestamp = Date().addingTimeInterval(TimeInterval(-i * 3600))
+            newMemo.content = "Sample memo \(i + 1)\nThis is sample content for preview."
         }
+        
         do {
             try viewContext.save()
         } catch {
-            // Replace this implementation with code to handle the error appropriately.
-            // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
             let nsError = error as NSError
             fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
         }
@@ -33,25 +33,31 @@ struct PersistenceController {
 
     init(inMemory: Bool = false) {
         container = NSPersistentContainer(name: "DigitalMemoPad")
+        
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+        } else {
+            // Configure for App Group sharing
+            let storeURL = URL.storeURL(for: "group.com.shuhei.digitalmemopad", databaseName: "DigitalMemoPad")
+            let storeDescription = NSPersistentStoreDescription(url: storeURL)
+            container.persistentStoreDescriptions = [storeDescription]
         }
+        
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-
-                /*
-                 Typical reasons for an error here include:
-                 * The parent directory does not exist, cannot be created, or disallows writing.
-                 * The persistent store is not accessible, due to permissions or data protection when the device is locked.
-                 * The device is out of space.
-                 * The store could not be migrated to the current model version.
-                 Check the error message to determine what the actual problem was.
-                 */
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
         })
         container.viewContext.automaticallyMergesChangesFromParent = true
+    }
+}
+
+// MARK: - App Group Support
+extension URL {
+    static func storeURL(for appGroup: String, databaseName: String) -> URL {
+        guard let fileContainer = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) else {
+            fatalError("Shared file container could not be created.")
+        }
+        return fileContainer.appendingPathComponent("\(databaseName).sqlite")
     }
 }
